@@ -10,7 +10,7 @@ TARGET_DIR=qformer_stage2_multiiamges
 MODEL_STAGE1=VLM_weight_output/lora_co_instruct_230k/
 
 
-CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} nohup python  bunny/eval/model_qbench2_multistage.py \
+CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} nohup python  bunny/eval/qbench2_multistage.py \
     --model-path VLM_weight_output/checkpoints-$MODEL_TYPE/$TARGET_DIR \
     --model-type $MODEL_TYPE \
     --model-base $MODEL_BASE \
