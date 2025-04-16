@@ -60,16 +60,10 @@ def load_pretrained_model(model_path, model_base, model_name, model_type, load_8
         if model_type == 'phi-1.5' or model_type == 'phi-2':
             tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=True)
             if 'qformer' in  model_name.lower():
-                if 'qformer_v3_bib' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bib_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=lora_cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                else:
-                    print('model_name.lower()',model_name.lower())
-                    model = BunnyQformerPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=lora_cfg_pretrained, **kwargs)
-                    model.get_model().initialize_qformer_modules(model_args=args,for_eval=True)
+                    print('load model path directly..... and model_name.lower()',model_name.lower())
+                    model = BunnyQformer_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
+                                                        config=lora_cfg_pretrained, **kwargs)
+                    model.get_model().initialize_qformer_modules( args,for_eval=True)
             else:
                # model = BunnyPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
                #                                         config=lora_cfg_pretrained, **kwargs)
@@ -131,16 +125,11 @@ def load_pretrained_model(model_path, model_base, model_name, model_type, load_8
             #model = BunnyPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
             #                                            config=cfg_pretrained, **kwargs)
             if 'qformer' in  model_name.lower():
-                if 'blip' in  model_name.lower():
-                    print('model_name.lower()',model_name.lower())
-                    model = BunnyBlipQformerPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                    model.get_model().initialize_blipqformer_modules(model_args=args,for_eval=True)
-                else:
-                    print('model_name.lower()',model_name.lower())
-                    model = BunnyQformerPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                    model.get_model().initialize_qformer_modules(model_args=args,for_eval=True)
+                
+                print('model_name.lower()',model_name.lower())
+                model = BunnyQformer_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
+                                                        config=cfg_pretrained, **kwargs)
+                model.get_model().initialize_qformer_modules(model_args=args,for_eval=True)
             else:
                 model = BunnyPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
                                                         config=cfg_pretrained, **kwargs)
@@ -163,9 +152,9 @@ def load_pretrained_model(model_path, model_base, model_name, model_type, load_8
             tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
             cfg_pretrained = AutoConfig.from_pretrained(model_path)
             #model = BunnyPhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
-            if 'qformer_v3_bib' in  model_name.lower():
+            if 'qformer' in  model_name.lower():
                 
-                model = BunnyQformer_v3_bib_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
+                model = BunnyQformer_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
                                                             config=cfg_pretrained, **kwargs)
                 model.get_model().initialize_qformer_modules( args,for_eval=True)
             else:
@@ -197,7 +186,7 @@ def load_pretrained_model(model_path, model_base, model_name, model_type, load_8
     return tokenizer, model, image_processor, context_len
 
 
-def load_pretrained_model_multistage(model_path, model_base, stage2, model_name, model_type, load_8bit=False, load_4bit=False,
+def load_pretrained_model_multistage(model_path, model_base, stage1, model_name, model_type, load_8bit=False, load_4bit=False,
                           device_map="auto", device="cuda", args=None, **kwargs):
     if model_type not in {'phi-1.5', 'phi-2', 'stablelm-2', 'qwen1.5-1.8b'}:
         raise ValueError(f"Unknown Model Type {model_type}")
@@ -251,17 +240,7 @@ def load_pretrained_model_multistage(model_path, model_base, stage2, model_name,
         print('Loading additional Bunny weights...')
         if os.path.exists(os.path.join(model_path, 'non_lora_trainables.bin')):
             non_lora_trainables = torch.load(os.path.join(model_path, 'non_lora_trainables.bin'), map_location='cpu')
-            '''else:
-                # this is probably from HF Hub
-                from huggingface_hub import hf_hub_download
-                def load_from_hf(repo_id, filename, subfolder=None):
-                    cache_file = hf_hub_download(
-                        repo_id=repo_id,
-                        filename=filename,
-                        subfolder=subfolder)
-                    return torch.load(cache_file, map_location='cpu')
-
-                non_lora_trainables = load_from_hf(model_path, 'non_lora_trainables.bin')'''
+            
 
             non_lora_trainables = {(k[11:] if k.startswith('base_model.') else k): v for k, v in
                                 non_lora_trainables.items()}
@@ -277,21 +256,21 @@ def load_pretrained_model_multistage(model_path, model_base, stage2, model_name,
         #model = model.merge_and_unload()
         #print('Model is loaded...')
        
-        if stage2 is not None:
+        if stage1 is not None:
 
-            print('Loading stage2 weights...')
-            model = load_lora(model, stage2)
-            if os.path.exists(os.path.join(stage2, 'adapter_model.bin')):
-                print('Merging stage2 weights...')
+            print('Loading stage1 weights...')
+            model = load_lora(model, stage1)
+            if os.path.exists(os.path.join(stage1, 'adapter_model.bin')):
+                print('Merging stage1 weights...')
                 model = model.merge_and_unload()
                 #print('check multistage false')
                 #vision_tower = model.get_model().vision_tower
                 #vision_tower.load_model()
             
-            print('Loading stage3 weights...')
+            print('Loading stage2 weights...')
             model = load_lora(model, model_path)
             if os.path.exists(os.path.join(model_path, 'adapter_model.bin')):
-                print('Merging stage3 weights...')
+                print('Merging stage2 weights...')
                 model = model.merge_and_unload()
             print(model.model)
 
@@ -303,92 +282,12 @@ def load_pretrained_model_multistage(model_path, model_base, stage2, model_name,
         if model_type == 'phi-1.5' or model_type == 'phi-2':
             tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=True)
             if 'qformer' in  model_name.lower():
-                if 'blip' in  model_name.lower():
                     print('load model path directly..... and model_name.lower()',model_name.lower())
-                    model = BunnyBlipQformerPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
+                    model = BunnyQformer_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
+                                                        config=cfg_pretrained, **kwargs)
+                    model.get_model().initialize_qformer_modules( args,for_eval=True)
                     print(model)
-                elif 'qformer_v1_wovlm' in  model_name.lower():
-                    print('load model path directly..... and model_name.lower()',model_name.lower())
-                    model = BunnyQformer_v1_wovlm_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                    print(model)
-                elif 'qformer_v3' in  model_name.lower():
-                    if 'qformer_v3_bia' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bia_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    elif 'qformer_v3_bib_ada' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bib_ada_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                        
-                    elif 'qformer_v3_bib_twomm_a' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bib_twomm_a_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    elif 'qformer_v3_bib_twomm_c' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bib_twomm_c_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    
-                    elif 'qformer_v3_bib_withpora' in  model_name.lower():
-                      
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bib_withPlora_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                        
-                    elif 'qformer_v3_bib_QAprompt' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bib_QAprompt_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        #model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    
-                    
-                    elif 'qformer_v3_bib' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bib_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    
-                    elif 'qformer_v3_bicb' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bicb_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    elif 'qformer_v3_bisb' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bisb_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    elif 'qformer_v3_binb' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_binb_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    elif 'qformer_v3_b' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_b_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    
-                    else:
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_PhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                                config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    print(model)
-                else:
-                    print('load model path directly..... and model_name.lower()',model_name.lower())
-                    model = BunnyQformerPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                    print(model)
-               
+                
             else:
                 model = BunnyPhiForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True,
                                                         config=cfg_pretrained, **kwargs)
@@ -401,12 +300,12 @@ def load_pretrained_model_multistage(model_path, model_base, stage2, model_name,
             tokenizer = AutoTokenizer.from_pretrained(model_base, use_fast=True)
             model = BunnyQwenForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True, config=cfg_pretrained,
                                                          **kwargs)
-        if stage2 is not None:
+        if stage1 is not None:
 
-            print('Loading stage2 weights...')
-            model = load_lora(model, stage2)
-            if os.path.exists(os.path.join(stage2, 'adapter_model.bin')):
-                print('Merging stage2 weights...')
+            print('Loading stage1 weights...')
+            model = load_lora(model, stage1)
+            if os.path.exists(os.path.join(stage1, 'adapter_model.bin')):
+                print('Merging stage1 weights...')
                 model = model.merge_and_unload()
 
         mm_projector_weights = torch.load(os.path.join(model_path, 'mm_projector.bin'), map_location='cpu')
@@ -420,83 +319,14 @@ def load_pretrained_model_multistage(model_path, model_base, stage2, model_name,
             tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
             #model = BunnyPhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, **kwargs)
             if 'qformer' in  model_name.lower():
-                if 'blip' in  model_name.lower():
                     print('load model path directly..... and model_name.lower()',model_name.lower())
-                    model = BunnyBlipQformerPhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                    print(model)
-                elif 'qformer_v1_wovlm' in  model_name.lower():
-                    print('load model path directly..... and model_name.lower()',model_name.lower())
-                    model = BunnyQformer_v1_wovlm_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                    print(model)
-                elif 'qformer_v3' in  model_name.lower():
-                    if 'qformer_v3_bia' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bia_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    elif 'qformer_v3_bib_ada' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bib_ada_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                        
-                    elif 'qformer_v3_bib_twomm_a' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bib_twomm_a_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                    
-                    elif 'qformer_v3_bib_twomm_c' in  model_name.lower():    
-                        
-                        model = BunnyQformer_v3_bib_twomm_c_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                        
-                    elif 'qformer_v3_bib' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        
-                        model = BunnyQformer_v3_bib_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                  config=cfg_pretrained, **kwargs)
-                      
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    
-                    elif 'qformer_v3_bicb' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bicb_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    elif 'qformer_v3_bisb' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_bisb_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    elif 'qformer_v3_binb' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_binb_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    elif 'qformer_v3_b' in  model_name.lower():
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_b_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    
-                    else:
-                        print('load model path directly..... and model_name.lower()',model_name.lower())
-                        model = BunnyQformer_v3_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                                config=cfg_pretrained, **kwargs)
-                        model.get_model().initialize_qformer_modules( args,for_eval=True)
-                    print(model)
-                else:
-                    print('load model path directly..... and model_name.lower()',model_name.lower())
-                    model = BunnyQformerPhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
-                                                            config=cfg_pretrained, **kwargs)
+                    model = BunnyQformer_PhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
+                                              config=cfg_pretrained, **kwargs)
+                  
                     model.get_model().initialize_qformer_modules( args,for_eval=True)
+ 
                     print(model)
-               
+                            
             else:
                 model = BunnyPhiForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True,
                                                         config=cfg_pretrained, **kwargs)
